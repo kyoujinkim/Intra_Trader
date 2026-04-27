@@ -49,8 +49,8 @@ def _fetch(u, r):
 
 data_fields = ['TRDPRC_1', 'BID', 'ASK']
 
-start = dt.datetime(2026, 4, 5, 23, 50)
-end = dt.datetime(2026, 4, 9, 7, 0)
+start = dt.datetime(2026, 4, 12, 23, 50)
+end = dt.datetime(2026, 4, 23, 7, 0)
 
 if __name__ == "__main__":
 

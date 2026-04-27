@@ -287,5 +287,5 @@ if __name__ == '__main__':
     n_workers = max(1, mp.cpu_count() - 1)
     print(f"Processing {len(universe)} tickers with {n_workers} workers...")
 
-    #run(universe)
-    run_vol(universe)
+    run(universe)
+    #run_vol(universe)
