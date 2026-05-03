@@ -4,6 +4,8 @@ import numpy as np
 from tqdm import tqdm
 from dtaidistance import dtw
 
+from config import DATA_DIR, INDICATOR_XLSX, ROLLING_WINDOW, MARKET_HOURS
+
 pd.set_option('mode.chained_assignment', None)  # 경고 off
 
 
@@ -11,7 +13,7 @@ pd.set_option('mode.chained_assignment', None)  # 경고 off
 # Indicator functions  (unchanged logic)
 # ──────────────────────────────────────────────────────────────
 
-def calculate_price_microstructure(df, window=12):
+def calculate_price_microstructure(df, window=ROLLING_WINDOW):
     """df: ['bid_price', 'ask_price', 'last_price'] 시계열 데이터"""
     df['mid_price']   = (df['ask_price'] + df['bid_price']) / 2
     df['spread']      = df['ask_price'] - df['bid_price']
@@ -30,7 +32,7 @@ def calculate_price_microstructure(df, window=12):
     df['intra_vol']  = intra_vol
     df['signed_vol'] = signed_vol
 
-    df = df.between_time('09:30', '15:00')
+    df = df.between_time(MARKET_HOURS[0], MARKET_HOURS[1])
     return df.dropna()
 
 
@@ -55,7 +57,7 @@ def process_ticker_vol(u: str):
              signed_disp_series, coil_series, ret_series)
     or None if data is missing / an error occurs.
     """
-    df = pd.read_parquet(f'./data/{u}.parquet', engine='pyarrow')
+    df = pd.read_parquet(f'{DATA_DIR}/{u}.parquet', engine='pyarrow')
     if len(df) == 0 or len(df.columns) < 3:
         print(f"{u}: 데이터 부족으로 분석 불가")
         return None
@@ -70,7 +72,7 @@ def process_ticker_vol(u: str):
         df[col] = df.groupby('ymd')[col].ffill()
     df = df.dropna(subset=['bid_price', 'ask_price', 'last_price'])
 
-    df_ind = calculate_price_microstructure(df, window=12)
+    df_ind = calculate_price_microstructure(df)
 
     # U-Curve reference (median intraday pattern)
     df_ind['hm'] = (df_ind.index.hour.astype(str).str.zfill(2) +
@@ -88,7 +90,7 @@ def process_ticker(u: str):
     or None if data is missing / an error occurs.
     """
     try:
-        df = pd.read_parquet(f'./data/{u}.parquet', engine='pyarrow')
+        df = pd.read_parquet(f'{DATA_DIR}/{u}.parquet', engine='pyarrow')
         if len(df) == 0 or len(df.columns) < 3:
             print(f"{u}: 데이터 부족으로 분석 불가")
             return None
@@ -103,7 +105,7 @@ def process_ticker(u: str):
             df[col] = df.groupby('ymd')[col].ffill()
         df = df.dropna(subset=['bid_price', 'ask_price', 'last_price'])
 
-        df_ind = calculate_price_microstructure(df, window=12)
+        df_ind = calculate_price_microstructure(df)
 
         # U-Curve reference (median intraday pattern)
         df_ind['hm'] = (df_ind.index.hour.astype(str).str.zfill(2) +
@@ -237,7 +239,7 @@ def run(universe: list):
     })
 
     print("Saving to Excel...")
-    with pd.ExcelWriter('./price_microstructure_analysis.xlsx') as writer:
+    with pd.ExcelWriter(INDICATOR_XLSX) as writer:
         str_df.to_excel(writer,          sheet_name='Strength_Score')
         res_df.to_excel(writer,          sheet_name='Resilience')
         disp_df.to_excel(writer,         sheet_name='Disparity')

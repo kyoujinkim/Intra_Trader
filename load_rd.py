@@ -1,58 +1,53 @@
+import argparse
+import concurrent
 import os
 from concurrent.futures import ThreadPoolExecutor
 from configparser import ConfigParser
 
 import pandas as pd
 import refinitiv.data as rd
+from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 import datetime as dt
 
+from config import DATA_DIR, TICK_DIR, DATA_FIELD
+
 pd.set_option('future.no_silent_downcasting', True)
 
-def _fetch(u, r):
-    if os.path.exists('./data/{}.parquet'.format(u)):
-        #continue
-        prev_data = pd.read_parquet('./data/{}.parquet'.format(u))
+def _fetch(t, c, u, r):
+    path = f'{TICK_DIR}/{c}/{u}.parquet'
+    if os.path.exists(path):
+        prev_data = pd.read_parquet(path)
     else:
-        prev_data = pd.DataFrame()
+        prev_data = pd.DataFrame(columns=DATA_FIELD)
 
     if len(prev_data) > 0:
-        if prev_data.index[-1] > end:
-            print(f"{u}: 데이터 최신")
-            return {u: False}
+        s = prev_data.index[-1]
+    else:
+        s = t - relativedelta(years=1)
+        prev_data = pd.DataFrame(columns=DATA_FIELD)
 
-    if 'Timestamp' in prev_data.columns:
-        prev_data.set_index('Timestamp', inplace=True)
-        prev_data.index = pd.to_datetime(prev_data.index)
-        prev_data = prev_data.between_time('23:50', '07:00')
-    elif prev_data.index.name == 'Timestamp':
-        prev_data.index = pd.to_datetime(prev_data.index)
-        prev_data = prev_data.between_time('23:50', '07:00')
-
-    if len(prev_data) == 0:
-        prev_data = pd.DataFrame(columns=data_fields)
-
-    data = rd.get_history(universe=r, fields=data_fields, interval='5min', start=start, end=end)
+    data = rd.get_history(universe=r, fields=DATA_FIELD, interval='5min', start=s, end=t)
     if len(data) == 0:
         print(f"{u}: 신규 데이터 없음")
         return {u: False}
 
-    data = data.between_time('23:50', '07:00')
-
     total_data = prev_data.combine_first(data).sort_index()
     total_data = total_data[~total_data.index.duplicated(keep='last')]
 
-    total_data.to_parquet('./data/{}.parquet'.format(u), engine='pyarrow')
+    total_data.to_parquet(path, engine='pyarrow')
 
     return {u: True}
 
-
-data_fields = ['TRDPRC_1', 'BID', 'ASK']
-
-start = dt.datetime(2026, 4, 12, 23, 50)
-end = dt.datetime(2026, 4, 23, 7, 0)
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--country', type=str, default='kr', choices=['kr', 'us'], help='country code')
+    return parser.parse_args()
 
 if __name__ == "__main__":
+    args = parse_args()
+
+    t_date = dt.datetime.today()
 
     # Load App Key from config file
     config = ConfigParser()
@@ -63,14 +58,16 @@ if __name__ == "__main__":
     rd.session.set_default(session)
     session.open()
 
-    universe = pd.read_csv('./top100.csv')['instrument'].tolist()
-    ref = rd.get_data(universe=universe, fields=['TR.RIC'])['RIC'].tolist()
+    universe_df = pd.read_csv(f'{DATA_DIR}/{args.country}/universe.csv', index_col=0, encoding='CP949')
+    universe = universe_df.index
+    ref = universe_df['RIC'].tolist()
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         pool = [
-            executor.submit(_fetch, u, r) for u, r in tqdm(zip(universe, ref), total=len(ref))
+            executor.submit(_fetch, t_date, args.country, u, r) for u, r in zip(universe, ref)
         ]
-        results = [p.result() for p in pool]
+
+        results = [p.result() for p in tqdm(concurrent.futures.as_completed(pool), total=len(pool))]
 
     r_dict = {}
     for r in results:
