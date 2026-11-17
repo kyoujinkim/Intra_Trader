@@ -1,18 +1,14 @@
 DATA_DIR          = "./data"
 TICK_DIR          = 'D:/TickData_DB'
 OUTPUT_DIR        = "./output"
-INDICATOR_XLSX    = "./price_microstructure_analysis.xlsx"
-META_CSV          = "./output/meta_df.csv"
-ANALYSIS_XLSX     = "./output/analysis.xlsx"
-RF_DIR            = "./output/RF"
-MODEL_PATH        = "./model/rf.joblib"
+MODEL_PATH        = "./model"
 
 ROLLING_WINDOW    = 12
-MARKET_HOURS_KT      = ("09:30", "15:00")
-MARKET_HOURS_   = ("23:50", "07:00")
+MARKET_HOURS      = {'kr':("Asia/Seoul", "09:30", "15:00"),
+                     'us':("America/New_York", "09:30", "16:00")}
 
 WINDOW            = 3
-STRIDE            = 1
+STRIDE            = 3
 
 FEATURE_COLS = [
     "str_mean", "str_max", "str_min",
@@ -30,7 +26,6 @@ SHEET_NAMES = {
     "disparity":   "Disparity",
     "signed_disp": "Signed_Disparity",
     "sdd":         "Signed_Disp_Diff",
-    "coil":        "Coil_Release",
     "returns":     "Returns",
 }
 

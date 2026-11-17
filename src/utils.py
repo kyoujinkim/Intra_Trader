@@ -3,9 +3,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
-import config
-
-
 def setup_matplotlib():
     """Configure matplotlib backend and Korean font. Call once at module load."""
     try:
@@ -37,22 +34,6 @@ def safe_show():
     if any(b in backend for b in interactive):
         plt.show()
 
-
-def load_indicator_excel(path=None, start_dt=None):
-    """Load all indicator sheets from the Excel file.
-
-    Returns a dict keyed by config.SHEET_NAMES keys (e.g. 'strength', 'resilience', ...).
-    """
-    path = path or config.INDICATOR_XLSX
-    sheets = {}
-    for key, sheet_name in config.SHEET_NAMES.items():
-        df = pd.read_excel(path, sheet_name=sheet_name, index_col=0, parse_dates=True)
-        df.index = pd.to_datetime(df.index)
-        df = df.sort_index()
-        if start_dt is not None:
-            df = df[df.index >= pd.to_datetime(start_dt)]
-        sheets[key] = df
-    return sheets
 
 
 def window_features(s, res, d, sd, sdd) -> dict:

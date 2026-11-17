@@ -22,7 +22,7 @@ def setup():
             plt.rcParams["font.family"] = font
             break
 
-    os.makedirs("./output", exist_ok=True)
+    os.makedirs("../output", exist_ok=True)
 
 def plot_temporal_cluster_map(meta_df: pd.DataFrame, labels: np.ndarray, sector: str):
     """

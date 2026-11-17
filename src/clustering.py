@@ -67,7 +67,7 @@ def setup():
             plt.rcParams["font.family"] = font
             break
 
-    os.makedirs("./output", exist_ok=True)
+    os.makedirs("../output", exist_ok=True)
 
 
 # ──────────────────────────────────────────────────────────────

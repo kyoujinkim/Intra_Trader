@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 import datetime as dt
 
-from config import DATA_DIR, TICK_DIR, DATA_FIELD
+from src.config import DATA_DIR, TICK_DIR, DATA_FIELD
 
 pd.set_option('future.no_silent_downcasting', True)
 
